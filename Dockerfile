@@ -5,7 +5,7 @@ FROM julia:1.9
 RUN apt-get update && apt-get install -y git
 
 WORKDIR /app
-COPY . /app
+COPY Project.toml Manifest.toml /app/
 
 # Install required Julia packages once, then precompile
 COPY Project.toml Manifest.toml /app/
