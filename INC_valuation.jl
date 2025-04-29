@@ -2,7 +2,7 @@
 # Input Assumptions
 # -------------------------
 
-using DataFrames, Plots, Printf
+using DataFrames, Printf
 
 # Base Case Assumptions
 management_fee_base = 0.003        # 0.3% of AUM
@@ -148,63 +148,67 @@ end
 # Run Scenarios
 # -------------------------
 
-# Base Case
-base_df, base_val = project_mfo_with_vectors(
-    "Base Case";
-    management_fee = management_fee_base,
-    families_vec   = families_vec_base,
-    aum_growth     = aum_growth_base,
-    salary_vec     = salary_vec_base,
-    rent_vec       = rent_vec_base,
-    tech_vec       = tech_vec_base,
-    legal_vec      = legal_vec_base,
-    marketing_vec  = marketing_vec_base,
-    initial_aum_per_family = initial_aum_per_family
-);
+if abspath(PROGRAM_FILE) == @__FILE__
+    using Plots       
 
-# Optimistic Case
-opt_df, opt_val = project_mfo_with_vectors(
-    "Optimistic";
-    management_fee = management_fee_opt,
-    families_vec   = families_vec_opt,
-    aum_growth     = aum_growth_opt,
-    salary_vec     = salary_vec_base,
-    rent_vec       = rent_vec_base,
-    tech_vec       = tech_vec_base,
-    legal_vec      = legal_vec_base,
-    marketing_vec  = marketing_vec_base,
-    initial_aum_per_family = initial_aum_per_family_opt
-);
+    # Base Case
+    base_df, base_val = project_mfo_with_vectors(
+        "Base Case";
+        management_fee = management_fee_base,
+        families_vec   = families_vec_base,
+        aum_growth     = aum_growth_base,
+        salary_vec     = salary_vec_base,
+        rent_vec       = rent_vec_base,
+        tech_vec       = tech_vec_base,
+        legal_vec      = legal_vec_base,
+        marketing_vec  = marketing_vec_base,
+        initial_aum_per_family = initial_aum_per_family
+    );
 
-# Pessimistic Case
-pess_df, pess_val = project_mfo_with_vectors(
-    "Pessimistic";
-    management_fee = management_fee_pess,
-    families_vec   = families_vec_pess,
-    aum_growth     = aum_growth_pess,
-    salary_vec     = salary_vec_base,
-    rent_vec       = rent_vec_base,
-    tech_vec       = tech_vec_base,
-    legal_vec      = legal_vec_base,
-    marketing_vec  = marketing_vec_base,
-    initial_aum_per_family = initial_aum_per_family_pess
-);
+    # Optimistic Case
+    opt_df, opt_val = project_mfo_with_vectors(
+        "Optimistic";
+        management_fee = management_fee_opt,
+        families_vec   = families_vec_opt,
+        aum_growth     = aum_growth_opt,
+        salary_vec     = salary_vec_base,
+        rent_vec       = rent_vec_base,
+        tech_vec       = tech_vec_base,
+        legal_vec      = legal_vec_base,
+        marketing_vec  = marketing_vec_base,
+        initial_aum_per_family = initial_aum_per_family_opt
+    );
 
-# -------------------------
-# Plotting (Base Case)
-# -------------------------
+    # Pessimistic Case
+    pess_df, pess_val = project_mfo_with_vectors(
+        "Pessimistic";
+        management_fee = management_fee_pess,
+        families_vec   = families_vec_pess,
+        aum_growth     = aum_growth_pess,
+        salary_vec     = salary_vec_base,
+        rent_vec       = rent_vec_base,
+        tech_vec       = tech_vec_base,
+        legal_vec      = legal_vec_base,
+        marketing_vec  = marketing_vec_base,
+        initial_aum_per_family = initial_aum_per_family_pess
+    );
 
-# Plot 1: Total AUM over time (Base Case)
-years = 1:projection_years
-plot(years, base_df.TotalAUM/1e6, marker=:circle, color=:orange, labels="Total AUM",
-     title="Total AUM over 5 Years (Base Case)", xlabel="Year", ylabel="BRL Millions", legend=false)
+    # -------------------------
+    # Plotting (Base Case)
+    # -------------------------
 
-# Plot 2: Revenue and Net Income over time (Base Case)
-plot(years, base_df.Revenue/1e6, marker=:circle, color=:orange, label="Revenue",
-     title="Revenue and Net Income (Base Case)", xlabel="Year", ylabel="BRL Millions")
-plot!(years, base_df.NetIncome/1e6, marker=:square, color=:red, label="Net Income")
+    # Plot 1: Total AUM over time (Base Case)
+    years = 1:projection_years
+    plot(years, base_df.TotalAUM/1e6, marker=:circle, color=:orange, labels="Total AUM",
+        title="Total AUM over 5 Years (Base Case)", xlabel="Year", ylabel="BRL Millions", legend=false)
 
-# Plot 3: Cumulative Free Cash Flow over time (Base Case)
-cum_fcf = cumsum(base_df.FCF)
-plot(years, cum_fcf/1e6, marker=:circle, color=:green, labels="Cumulative FCF",
-     title="Cumulative Free Cash Flow (Base Case)", xlabel="Year", ylabel="BRL Millions", legend=false)
+    # Plot 2: Revenue and Net Income over time (Base Case)
+    plot(years, base_df.Revenue/1e6, marker=:circle, color=:orange, label="Revenue",
+        title="Revenue and Net Income (Base Case)", xlabel="Year", ylabel="BRL Millions")
+    plot!(years, base_df.NetIncome/1e6, marker=:square, color=:red, label="Net Income")
+
+    # Plot 3: Cumulative Free Cash Flow over time (Base Case)
+    cum_fcf = cumsum(base_df.FCF)
+    plot(years, cum_fcf/1e6, marker=:circle, color=:green, labels="Cumulative FCF",
+        title="Cumulative Free Cash Flow (Base Case)", xlabel="Year", ylabel="BRL Millions", legend=false)
+end
