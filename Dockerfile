@@ -8,8 +8,8 @@ WORKDIR /app
 COPY . /app
 
 # Install required Julia packages once, then precompile
-RUN julia -e 'using Pkg; Pkg.add.(["Dash","DashCoreComponents","DashHtmlComponents","DashTable","DataFrames","PlotlyJS"]); Pkg.precompile()'
-
+RUN julia -e 'using Pkg; Pkg.add.(["Dash","DashCoreComponents","DashHtmlComponents",\
+    "DashTable","DataFrames","PlotlyJS","Plots"]); Pkg.precompile()'
 # -------- Render convention --------
 # Render sets env PORT. Expose that, default to 8080 for local runs.
 ENV PORT=8080
