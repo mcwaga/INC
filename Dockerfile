@@ -12,7 +12,7 @@ RUN julia -e 'using Pkg; Pkg.add.(["Dash","DashCoreComponents","DashHtmlComponen
     "DashTable","DataFrames","PlotlyJS","Plots"]); Pkg.precompile()'
 # -------- Render convention --------
 # Render sets env PORT. Expose that, default to 8080 for local runs.
-ENV PORT=8080
-EXPOSE 8080
+ENV PORT=8050
+EXPOSE 8050
 
 CMD ["julia", "webapp.jl"]

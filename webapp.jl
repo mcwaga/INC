@@ -13,8 +13,8 @@ include("INC_valuation.jl")   # assumes same folder
 defaults = Dict(
     :fee          => 0.003,           # 0.3 %
     :aum0         => 300e6,           # R$ per family
-    :aum_growth   => 0.06,            # 6 %
-    :families     => "1.5,4,8,10,12", # CSV string → vector
+    :aum_growth   => 0.05,            # 6 %
+    :families     => "2,4,8,10,12", # CSV string → vector
     :salary_vec   => "0,0.5,1,1.25,1.5",   # in millions
     :rent_vec     => "0,0.1,0.2,0.2,0.24",
     :tech_vec     => "0.1,0.105,0.11,0.116,0.122",
@@ -440,7 +440,7 @@ app.layout = html_div(style=Dict(
                                     Dict("name"=>"Marketing", "id"=>"Marketing", "type"=>"numeric", "format"=>Dict("specifier"=>".2f"))
                                 ],
                                 data=[
-                                    Dict("Year"=>1, "Families"=>1.5, "Salary"=>0.0, "Rent"=>0.0, "Tech"=>0.10, "Legal"=>0.012, "Marketing"=>0.10),
+                                    Dict("Year"=>1, "Families"=>2.0, "Salary"=>0.0, "Rent"=>0.0, "Tech"=>0.10, "Legal"=>0.012, "Marketing"=>0.10),
                                     Dict("Year"=>2, "Families"=>4.0, "Salary"=>0.5, "Rent"=>0.1, "Tech"=>0.105, "Legal"=>0.015, "Marketing"=>0.11),
                                     Dict("Year"=>3, "Families"=>8.0, "Salary"=>1.0, "Rent"=>0.2, "Tech"=>0.11, "Legal"=>0.016, "Marketing"=>0.12),
                                     Dict("Year"=>4, "Families"=>10.0, "Salary"=>1.25, "Rent"=>0.2, "Tech"=>0.116, "Legal"=>0.017, "Marketing"=>0.13),
@@ -524,7 +524,7 @@ app.layout = html_div(style=Dict(
                         html_p([
                             "The valuation uses a discounted cash flow (DCF) methodology with revenue driven by ",
                             html_strong("AUM × fee rate"),
-                            " and comprehensive expense modeling."
+                            " and comprehensive expense modeling. We considered new families are acquired in July of each year",
                         ], style=Dict(:fontSize => "0.95rem")),
                         html_div(className="bg-light p-3 rounded-3 mt-3", style=Dict(:fontSize => "0.875rem"), children=[
                             html_div(className="d-flex", children=[
@@ -994,6 +994,6 @@ callback!(
            stat_families, stat_aum, stat_revenue, stat_fcf
 end
 
-
 # ------------- Run server --------------
-run_server(app, "0.0.0.0", parse(Int, get(ENV, "PORT", "8080")); debug=false)
+# run_server(app, "0.0.0.0", parse(Int, get(ENV, "PORT", "8080")); debug=false)
+run_server(app, "0.0.0.0", parse(Int, get(ENV, "PORT", "8050")); debug=false)
