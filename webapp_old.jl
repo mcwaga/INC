@@ -23,11 +23,13 @@ defaults = Dict(
 )
 
 # -------------- Dash Layout --------------------
-app = dash()
+app = dash(external_stylesheets = [
+    "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+])
 
 app.layout = html_div([
-    html_h2("MFO 5-Year Valuation"),
-    html_div([
+    html_h2("MFO 5-Year Valuation", style=Dict(:marginBottom=>"12px")),
+    html_div(className="card shadow-sm", [
         html_h4("Input Assumptions"),
 
         # ----- single‑value inputs -----
@@ -43,50 +45,69 @@ app.layout = html_div([
             html_label("AUM growth / year (%)"),
             dcc_input(id="aum_growth", type="number", value=defaults[:aum_growth]*100,
                       step=1, style=Dict(:width=>"100%")),
-        ], style=Dict(:display=>"grid",
-                      :gridTemplateColumns=>"140px 140px",
-                      :gap=>"6px 10px",
-                      :alignItems=>"center")),
+        ], style=Dict(
+            :display=>"grid",
+            :gridTemplateColumns=>"160px 1fr",
+            :rowGap=>"10px",
+            :columnGap=>"16px",
+            :alignItems=>"center"
+        )),
 
         html_hr(),
 
-        # ----- vector inputs -----
-        html_label("Families vector (CSV)"),
-        dcc_textarea(id="families", value=defaults[:families],
-                     placeholder="e.g. 1.5,4,8,10,12",
-                     style=Dict(:width=>"100%", :height=>"55px")),
+        html_h5("Year‑by‑Year Inputs (mi)"),
 
-        html_label("Salary vector (CSV, BRL mi/yr)"),
-        dcc_textarea(id="salary_vec", value=defaults[:salary_vec],
-                     style=Dict(:width=>"100%", :height=>"45px")),
+        html_p("Edit the yearly assumptions below. Values are in *millions* (except Families).",
+               style=Dict(:fontStyle=>"italic", :marginBottom=>"6px")),
 
-        html_label("Rent vector (CSV, BRL mi/yr)"),
-        dcc_textarea(id="rent_vec", value=defaults[:rent_vec],
-                     style=Dict(:width=>"100%", :height=>"45px")),
-
-        html_label("Tech vector (CSV, BRL mi/yr)"),
-        dcc_textarea(id="tech_vec", value=defaults[:tech_vec],
-                     style=Dict(:width=>"100%", :height=>"45px")),
-
-        html_label("Legal vector (CSV, BRL mi/yr)"),
-        dcc_textarea(id="legal_vec", value=defaults[:legal_vec],
-                     style=Dict(:width=>"100%", :height=>"45px")),
-
-        html_label("Marketing vector (CSV, BRL mi/yr)"),
-        dcc_textarea(id="mkt_vec", value=defaults[:mkt_vec],
-                     style=Dict(:width=>"100%", :height=>"45px")),
+        dash_datatable(
+            id="input_table",
+            columns=[
+                Dict("name"=>"Year","id"=>"Year","type"=>"numeric"),
+                Dict("name"=>"Families","id"=>"Families","type"=>"numeric"),
+                Dict("name"=>"Salary","id"=>"Salary","type"=>"numeric"),
+                Dict("name"=>"Rent","id"=>"Rent","type"=>"numeric"),
+                Dict("name"=>"Tech","id"=>"Tech","type"=>"numeric"),
+                Dict("name"=>"Legal","id"=>"Legal","type"=>"numeric"),
+                Dict("name"=>"Marketing","id"=>"Marketing","type"=>"numeric")
+            ],
+            data=[
+                Dict("Year"=>1,"Families"=>1.5,"Salary"=>0.0,"Rent"=>0.0,"Tech"=>0.10,"Legal"=>0.012,"Marketing"=>0.10),
+                Dict("Year"=>2,"Families"=>4.0,"Salary"=>0.5,"Rent"=>0.1,"Tech"=>0.105,"Legal"=>0.015,"Marketing"=>0.11),
+                Dict("Year"=>3,"Families"=>8.0,"Salary"=>1.0,"Rent"=>0.2,"Tech"=>0.11,"Legal"=>0.016,"Marketing"=>0.12),
+                Dict("Year"=>4,"Families"=>10.0,"Salary"=>1.25,"Rent"=>0.2,"Tech"=>0.116,"Legal"=>0.017,"Marketing"=>0.13),
+                Dict("Year"=>5,"Families"=>12.0,"Salary"=>1.5,"Rent"=>0.24,"Tech"=>0.122,"Legal"=>0.018,"Marketing"=>0.14)
+            ],
+            editable=true,
+            style_cell=Dict(
+                :minWidth=>"80px",
+                :textAlign=>"right",
+                :padding=>"6px 4px",
+                :fontFamily=>"monospace"
+            ),
+            style_header=Dict(
+                :backgroundColor=>"#0066cc",
+                :color=>"white",
+                :fontWeight=>"bold",
+                :textAlign=>"center"
+            ),
+        ),
+        html_div(id="err_msg", style=Dict(:color=>"crimson")),
 
         html_br(),
         html_button("Run Valuation", id="run_btn", n_clicks=0,
-                    style=Dict(:marginTop=>"8px", :width=>"100%"))
+                    className="btn btn-primary btn-lg",
+                    style=Dict(:marginTop=>"14px", :width=>"100%"))
     ],
-    style=Dict(:width=>"320px",
-               :display=>"inline-block",
-               :verticalAlign=>"top",
-               :padding=>"12px",
-               :border=>"1px solid #ccc",
-               :backgroundColor=>"#f8f8f8",
-               :fontSize=>"14px")),
+    style=Dict(
+        :width => "560px",
+        :maxWidth => "560px",
+        :padding => "24px",
+        :marginRight => "24px",
+        :border => "0",
+        :borderRadius => "12px",
+        :backgroundColor => "#ffffff"
+    )),
 
     html_div([
         html_h4("5-Year Table (BRL millions)"),
@@ -104,46 +125,72 @@ app.layout = html_div([
         dcc_graph(id="aum_plot"),
         dcc_graph(id="rev_plot"),
         dcc_graph(id="fcf_plot")
-    ], style=Dict(:width=>"70%", :display=>"inline-block",
-                  :paddingLeft=>"20px", :verticalAlign=>"top"))
+    ], style=Dict(:width=>"calc(100% - 600px)",
+                  :display=>"inline-block",
+                  :paddingLeft=>"32px",
+                  :paddingTop=>"4px",
+                  :verticalAlign=>"top"))
 ])
+
 
 # ------------- Helper to parse CSV -> Vector ---------------
 csvvec(txt, factor=1.0) = [parse(Float64, x)*factor for x in split(strip(txt), ',')]
 
+# robust conversion: accepts Real, String, or Missing
+to_float(x) = x === missing ? throw(ArgumentError("missing")) :
+              x isa Real    ? float(x) :
+              parse(Float64, String(x))
+
 # ------------- Callback: run valuation + update UI ---------
 callback!(
-    app, Output("table", "data"), Output("table", "columns"),
-    Output("aum_plot", "figure"), Output("rev_plot", "figure"),
-    Output("fcf_plot", "figure"),
-    Input("run_btn", "n_clicks"),
-    State("fee", "value"), State("aum0", "value"), State("aum_growth", "value"),
-    State("families", "value"), State("salary_vec", "value"),
-    State("rent_vec", "value"), State("tech_vec", "value"),
-    State("legal_vec", "value"), State("mkt_vec", "value")
-) do _,
-     fee_pct, aum0_mi, grow_pct, fam_txt, sal_txt, rent_txt, tech_txt, legal_txt, mkt_txt
+    app, Output("table","data"), Output("table","columns"),
+    Output("aum_plot","figure"), Output("rev_plot","figure"),
+    Output("fcf_plot","figure"), Output("err_msg","children"),
+    Input("run_btn","n_clicks"),
+    State("fee","value"), State("aum0","value"), State("aum_growth","value"),
+    State("input_table","data")
+) do _, fee_pct, aum0_mi, grow_pct, table_data
 
-    # convert form inputs
-    fee   = fee_pct / 100
-    aum0  = aum0_mi * 1e6
-    grow  = grow_pct / 100
-    fam   = csvvec(fam_txt)
-    sal   = csvvec(sal_txt, 1e6)
-    rent  = csvvec(rent_txt, 1e6)
-    tech  = csvvec(tech_txt, 1e6)
-    legal = csvvec(legal_txt, 1e6)
-    mkt   = csvvec(mkt_txt, 1e6)
+    fee  = fee_pct/100
+    aum0 = aum0_mi*1e6
+    grow = grow_pct/100
 
-    # run projection
-    df, _ = project_mfo_with_vectors("WebRun";
-        management_fee = fee,
-        families_vec   = fam,
-        aum_growth     = grow,
-        initial_aum_per_family = aum0,
-        salary_vec = sal, rent_vec = rent, tech_vec = tech,
-        legal_vec = legal, marketing_vec = mkt
-    )
+    local df = nothing   # make df visible outside try
+    try
+        fam   = [to_float(row["Families"])               for row in table_data]
+        sal   = [to_float(row["Salary"]   ) * 1e6        for row in table_data]
+        rent  = [to_float(row["Rent"]     ) * 1e6        for row in table_data]
+        tech  = [to_float(row["Tech"]     ) * 1e6        for row in table_data]
+        legal = [to_float(row["Legal"]    ) * 1e6        for row in table_data]
+        mkt   = [to_float(row["Marketing"]) * 1e6        for row in table_data]
+
+        # run projection
+        df, _ = project_mfo_with_vectors("WebRun";
+            management_fee = fee,
+            families_vec   = fam,
+            aum_growth     = grow,
+            initial_aum_per_family = aum0,
+            salary_vec = sal, rent_vec = rent, tech_vec = tech,
+            legal_vec = legal, marketing_vec = mkt
+        )
+    catch
+        empty_tbl  = Vector{Dict{String,Any}}()  # []
+        empty_cols = Vector{Dict{String,Any}}()  # []
+
+        empty_fig_json = Dict("data"=>[], "layout"=>Dict())  # valid Plotly fig
+
+        return empty_tbl, empty_cols,
+               empty_fig_json, empty_fig_json, empty_fig_json,
+               "Non‑numeric or missing cell."
+    end
+
+    if df === nothing
+        empty_tbl  = Vector{Dict{String,Any}}()
+        empty_cols = Vector{Dict{String,Any}}()
+        empty_fig_json = Dict("data"=>[], "layout"=>Dict())
+        return empty_tbl, empty_cols, empty_fig_json, empty_fig_json, empty_fig_json,
+               "Unexpected error in valuation."
+    end
 
     # create Dash‑compatible table (millions except Year/Families)
     df_pretty = in_millions(df)
@@ -175,7 +222,7 @@ callback!(
                           xaxis_title="Year",
                           yaxis_title="Millions"))
 
-    return tbl_data, tbl_cols, fig_aum, fig_rev, fig_fcf
+    return tbl_data, tbl_cols, fig_aum, fig_rev, fig_fcf, ""
 end
 
 # ------------- Run server --------------
