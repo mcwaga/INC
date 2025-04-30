@@ -210,14 +210,14 @@ app.layout = html_div(style=Dict(
     html_div(className="container-fluid pb-5", children=[
         # Key Statistics Row
         html_div(className="row mb-4 gy-4", children=[
-            # Family Stat
+            # Valuation Stat (was Family Offices)
             html_div(className="col-12 col-md-6 col-xl-3", children=[
                 html_div(className="stats-card stats-blue", children=[
                     html_div(className="d-flex justify-content-between", children=[
                         html_div(children=[
-                            html_div(className="stats-label", "Family Offices"),
-                            html_div(className="stats-value", id="stat_families", "12"),
-                            html_div("Year 5 Projection", style=Dict(:fontSize => "0.875rem", :color => COLOR_SCHEME[:text_light]))
+                            html_div(className="stats-label", "Valuation"),
+                            html_div(className="stats-value", id="stat_families", "—"),
+                            html_div("DCF (today)", style=Dict(:fontSize => "0.875rem", :color => COLOR_SCHEME[:text_light]))
                         ]),
                         html_i(className="bi bi-people-fill stats-icon mt-2")
                     ])
@@ -316,7 +316,6 @@ app.layout = html_div(style=Dict(
                                         )
                                     ])
                                 ]),
-                                
                                 # Initial AUM
                                 html_div(className="col-12 col-md-4", children=[
                                     html_div(className="form-floating", children=[
@@ -340,7 +339,6 @@ app.layout = html_div(style=Dict(
                                         )
                                     ])
                                 ]),
-                                
                                 # AUM Growth
                                 html_div(className="col-12 col-md-4", children=[
                                     html_div(className="form-floating", children=[
@@ -362,6 +360,48 @@ app.layout = html_div(style=Dict(
                                         html_label("Growth/Year (%)", 
                                             style=Dict(:paddingLeft => "0.75rem")
                                         )
+                                    ])
+                                ]),
+                                # Partner A %
+                                html_div(className="col-6 col-md-3", children=[
+                                    html_div(className="form-floating", children=[
+                                        dcc_input(
+                                            id="shareA",
+                                            type="number",
+                                            value=90,      # Partner A default
+                                            step=1,
+                                            min=0, max=100,
+                                            className="form-control",
+                                            style=Dict(
+                                                :height => "calc(3.5rem + 2px)",
+                                                :paddingTop => "1.625rem",
+                                                :paddingBottom => "0.625rem",
+                                                :fontSize => "1.1rem",
+                                                :fontWeight => "500"
+                                            )
+                                        ),
+                                        html_label("Partner A (%)", style=Dict(:paddingLeft=>"0.75rem"))
+                                    ])
+                                ]),
+                                # Partner B %
+                                html_div(className="col-6 col-md-3", children=[
+                                    html_div(className="form-floating", children=[
+                                        dcc_input(
+                                            id="shareB",
+                                            type="number",
+                                            value=10,      # Partner B default
+                                            step=1,
+                                            min=0, max=100,
+                                            className="form-control",
+                                            style=Dict(
+                                                :height => "calc(3.5rem + 2px)",
+                                                :paddingTop => "1.625rem",
+                                                :paddingBottom => "0.625rem",
+                                                :fontSize => "1.1rem",
+                                                :fontWeight => "500"
+                                            )
+                                        ),
+                                        html_label("Partner B (%)", style=Dict(:paddingLeft=>"0.75rem"))
                                     ])
                                 ])
                             ])
@@ -566,7 +606,34 @@ app.layout = html_div(style=Dict(
                         )
                     ])
                 ]),
-                
+                # Partner Share Card
+                html_div(className="card shadow mb-4", children=[
+                    html_div(className="card-header d-flex align-items-center", children=[
+                        html_i(className="bi bi-people me-2"),
+                        html_h4("Partner Cash‑Flow Share (BRL Thousands)", style=Dict(:margin=>"0", :fontWeight=>"600", :fontSize=>"1.25rem"))
+                    ]),
+                    html_div(className="card-body p-4", children=[
+                        dash_datatable(
+                            id="partner_table",
+                            data = Vector{Dict}(),           # start empty
+                            columns = Vector{Dict}(),        # start empty
+                            style_cell=Dict(
+                                :minWidth=>"80px",
+                                :padding=>"12px 8px",
+                                :fontFamily=>"'Montserrat', sans-serif",
+                                :fontSize=>"0.95rem",
+                                :textAlign=>"right"
+                            ),
+                            style_header=Dict(
+                                :backgroundColor=>"#f1f5f9",
+                                :fontWeight=>"600",
+                                :textAlign=>"center",
+                                :padding=>"16px 8px"
+                            ),
+                            style_table=Dict(:overflowX=>"auto")
+                        )
+                    ])
+                ]),
                 # Charts Row
                 html_div(className="row", children=[
                     # AUM Chart Card
@@ -626,18 +693,42 @@ to_float(x) = x === missing ? throw(ArgumentError("missing")) :
               x isa Real    ? float(x) :
               parse(Float64, String(x))
 
+#
+# --- Synchronise partner share inputs so they always add to 100 ---
+callback!(
+    app,
+    Output("shareA", "value"), Output("shareB", "value"),
+    Input("shareA", "value"), Input("shareB", "value")
+) do a, b
+    ctx = Dash.callback_context()           # which input changed?
+    if length(ctx.triggered) == 0
+        return Dash.no_update(), Dash.no_update()
+    end
+    trig = split(ctx.triggered[1][:prop_id], ".")[1]
+    if trig == "shareA" && a !== nothing
+        return a, max(0, 100 - a)
+    elseif trig == "shareB" && b !== nothing
+        return max(0, 100 - b), b
+    else
+        return Dash.no_update(), Dash.no_update()
+    end
+end
+
 # ------------- Callback: run valuation + update UI ---------
 callback!(
     app, 
     Output("table","data"), Output("table","columns"),
     Output("aum_plot","figure"), Output("rev_plot","figure"),
-    Output("fcf_plot","figure"), Output("err_msg","children"),
+    Output("fcf_plot","figure"),
+    Output("partner_table","data"), Output("partner_table","columns"),
+    Output("err_msg","children"),
     Output("stat_families","children"), Output("stat_aum","children"),
     Output("stat_revenue","children"), Output("stat_fcf","children"),
     Input("run_btn","n_clicks"),
     State("fee","value"), State("aum0","value"), State("aum_growth","value"),
-    State("input_table","data")
-) do _, fee_pct, aum0_mi, grow_pct, table_data
+    State("input_table","data"),
+    State("shareA","value"), State("shareB","value")
+) do _, fee_pct, aum0_mi, grow_pct, table_data, shareA, shareB
 
     fee  = fee_pct/100
     aum0 = aum0_mi*1e6
@@ -651,6 +742,8 @@ callback!(
     local netinc_mi = nothing
     local cum_fcf_mi = nothing
     local yrs = nothing
+    local empty_fig_json = Dict("data"=>[], "layout"=>Dict())  # reusable blank fig
+    local dcf_val = nothing
 
     try
         fam   = [to_float(row["Families"])               for row in table_data]
@@ -661,7 +754,7 @@ callback!(
         mkt   = [to_float(row["Marketing"]) * 1e6        for row in table_data]
 
         # run projection
-        df, _ = project_mfo_with_vectors("WebRun";
+        df, dcf_val = project_mfo_with_vectors("WebRun";
             management_fee = fee,
             families_vec   = fam,
             aum_growth     = grow,
@@ -688,24 +781,24 @@ callback!(
         empty_tbl  = Vector{Dict{String,Any}}()  # []
         empty_cols = Vector{Dict{String,Any}}()  # []
 
-        empty_fig_json = Dict("data"=>[], "layout"=>Dict())  # valid Plotly fig
-        
-        # Return all outputs with empty content and error message
+        # Return all outputs with empty content and error message (12 items)
         return empty_tbl, empty_cols,
                empty_fig_json, empty_fig_json, empty_fig_json,
-               html_div([html_i(className="bi bi-exclamation-triangle-fill me-2"), "Error: Non-numeric or missing data in table."]),
+               empty_tbl, empty_cols,
+               html_div([html_i(className="bi bi-exclamation-triangle-fill me-2"),
+                         "Error: Non-numeric or missing data in table."]),
                "—", "—", "—", "—"
     end
 
     if df === nothing
         empty_tbl  = Vector{Dict{String,Any}}()
         empty_cols = Vector{Dict{String,Any}}()
-        empty_fig_json = Dict("data"=>[], "layout"=>Dict())
-        
-        # Return all outputs with empty content and error message
-        return empty_tbl, empty_cols, 
+        # Return all outputs with empty content and error message (12 items)
+        return empty_tbl, empty_cols,
                empty_fig_json, empty_fig_json, empty_fig_json,
-               html_div([html_i(className="bi bi-exclamation-triangle-fill me-2"), "Unexpected error in calculation."]),
+               empty_tbl, empty_cols,
+               html_div([html_i(className="bi bi-exclamation-triangle-fill me-2"),
+                         "Unexpected error in calculation."]),
                "—", "—", "—", "—"
     end
 
@@ -723,9 +816,13 @@ callback!(
     ]
     tbl_data  = [Dict(string(k)=>v for (k,v) in pairs(row)) for row in eachrow(df_pretty)]
 
-    # Update summary stats with final year values and cumulative FCF
-    stat_families = string(Int(round(fam[end])))
-    
+    # ---- Summary stats ----
+    # Valuation (DCF today)
+    if dcf_val >= 1e9
+        stat_families = string(round(dcf_val/1e9; digits=1), "B")
+    else
+        stat_families = string(round(dcf_val/1e6; digits=0), "M")
+    end
     # Fix for the AUM formatting to avoid integer conversion errors
     if aum_mi[end] >= 1000
         # For values over 1000 million, show as billions with one decimal place
@@ -736,9 +833,40 @@ callback!(
         aum_value = round(aum_mi[end], digits=0)
         stat_aum = string(Int(aum_value), "M")
     end
-    
     stat_revenue = string(round(revenue_mi[end], digits=1), "M")
     stat_fcf = string(round(cum_fcf_mi[end], digits=1), "M")
+
+    # --- Partner split -----------------------
+    if abs(shareA + shareB - 100) > 1e-6
+        return tbl_data, tbl_cols,
+               empty_fig_json, empty_fig_json, empty_fig_json,
+               Vector{Dict}(), Vector{Dict}(),   # empty partner table
+               html_div([html_i(className="bi bi-exclamation-triangle-fill me-2"),
+                         "Partner shares must sum to 100%."]),
+               stat_families, stat_aum, stat_revenue, stat_fcf
+    end
+
+    partA = shareA / 100
+    partB = shareB / 100
+    part_tbl_cols = [
+        Dict("name"=>"Year","id"=>"Year"),
+        Dict("name"=>"P. A (Yearly)","id"=>"A",  "format"=>Dict("specifier"=>",.0f")),
+        Dict("name"=>"P. B (Yearly)","id"=>"B",  "format"=>Dict("specifier"=>",.0f")),
+        Dict("name"=>"P. A (Monthly)","id"=>"Am",     "format"=>Dict("specifier"=>",.0f")),
+        Dict("name"=>"P. B (Monthly)","id"=>"Bm",     "format"=>Dict("specifier"=>",.0f"))
+    ]
+    part_tbl_data = [
+        Dict("Year"=>y,
+             "A"=>round(fcf*partA/1e3; digits=0),
+             "B"=>round(fcf*partB/1e3; digits=0),
+             "Am"=>round(fcf*partA/12/1e3; digits=0),
+             "Bm"=>round(fcf*partB/12/1e3; digits=0)
+        ) for (y,fcf) in zip(yrs, df.FCF)
+    ]
+
+    # Ensure partner table columns/data are new JSON-serialisable copies
+    partner_cols = [Dict("name"=>c["name"], "id"=>c["id"]) for c in part_tbl_cols]
+    partner_data = [Dict(string(k)=>v for (k,v) in pairs(r)) for r in part_tbl_data]
 
     # Chart templates and formatting
     chart_template = Dict(
@@ -861,7 +989,8 @@ callback!(
         ))
     )
 
-    return tbl_data, tbl_cols, fig_aum, fig_rev, fig_fcf, "", 
+    return tbl_data, tbl_cols, fig_aum, fig_rev, fig_fcf,
+           partner_data, partner_cols, "",
            stat_families, stat_aum, stat_revenue, stat_fcf
 end
 
