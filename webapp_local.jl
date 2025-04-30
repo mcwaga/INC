@@ -670,6 +670,11 @@ callback!(
             legal_vec = legal, marketing_vec = mkt
         )
 
+        # ----- Add Taxes and Total Expenses columns --------------------------
+        # Taxes = EBITDA - NetIncome = Revenue - OpCosts - NetIncome
+        df[:, :Taxes] = df.Revenue .- df.OpCosts .- df.NetIncome
+        df[:, :TotalExp] = df.OpCosts
+
         # Only calculate these if we have a valid dataframe
         if df !== nothing
             # build figures (values in millions)
@@ -711,7 +716,8 @@ callback!(
         Dict("name"=>"Families", "id"=>"Families", "type"=>"numeric", "format"=>Dict("specifier"=>".1f")),
         Dict("name"=>"AUM", "id"=>"TotalAUM", "type"=>"numeric", "format"=>Dict("specifier"=>",.2f")),
         Dict("name"=>"Revenue", "id"=>"Revenue", "type"=>"numeric", "format"=>Dict("specifier"=>",.2f")),
-        Dict("name"=>"Expenses", "id"=>"TotalExpenses", "type"=>"numeric", "format"=>Dict("specifier"=>",.2f")),
+        Dict("name"=>"Taxes", "id"=>"Taxes", "type"=>"numeric", "format"=>Dict("specifier"=>",.2f")),
+        Dict("name"=>"Expenses", "id"=>"TotalExp", "type"=>"numeric", "format"=>Dict("specifier"=>",.2f")),
         Dict("name"=>"Net Income", "id"=>"NetIncome", "type"=>"numeric", "format"=>Dict("specifier"=>",.2f")),
         Dict("name"=>"FCF", "id"=>"FCF", "type"=>"numeric", "format"=>Dict("specifier"=>",.2f"))
     ]
